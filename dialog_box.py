@@ -107,3 +107,14 @@ class dialog_box(QLabel):
             "url(:/)"
         )
         self.adjustSize()
+
+    def drag_file_mode(self):
+        self.setText('好吃好吃~')
+        self.setStyleSheet(
+            "font: bold;"
+            "font:25pt '楷体';"
+            "color:white;"
+            "background-color: white"
+            "url(:/)"
+        )
+        self.adjustSize()
