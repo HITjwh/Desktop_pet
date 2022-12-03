@@ -4,8 +4,9 @@
 import os
 import random
 import sys
-from PyQt5.QtGui import *
+
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from Pet import Pet
@@ -42,21 +43,27 @@ class Desktop(QWidget):
 
         # 窗口初始化
         self.init_window()
-        # 托盘化初始
+        # # 托盘化初始
         self.init_tray()
-        # 宠物静态gif图加载
+        # # 宠物静态gif图加载
         self.initPetImage()
-        # 宠物正常待机，实现随机切换动作
+        # # 宠物正常待机，实现随机切换动作
         self.petNormalAction()
+
+        self.setAcceptDrops(True)
 
     # 窗体初始化
     def init_window(self):
+
         # 初始化
         # 设置窗口属性:窗口无标题栏且固定在最前面
         # FrameWindowHint:无边框窗口
         # WindowStaysOnTopHint: 窗口总显示在最上面
         # SubWindow: 新窗口部件是一个子窗口，而无论窗口部件是否有父窗口部件
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SubWindow)
+        # self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SubWindow)
+
+        # 如果加上Qt.SubWindow则不能接受图标拖入事件
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         # setAutoFillBackground(True)表示的是自动填充背景,False为透明背景
         self.setAutoFillBackground(True)
         # 窗口透明，窗体空间不透明
@@ -95,12 +102,14 @@ class Desktop(QWidget):
 
     # 宠物静态gif图加载
     def initPetImage(self):
+
         # 对话框定义
         self.text = dialog_box(self)
         # 定义显示图片部分
         self.pet_image = Pet(self)
         # 重构窗口大小
         self.resize(1024, 1024)
+
         # 调用自定义的randomPosition，会使得宠物出现位置随机
         self.randomPosition()
         # 展示
@@ -114,10 +123,11 @@ class Desktop(QWidget):
         pet_geo = self.geometry()
         width = (screen_geo.width() - pet_geo.width()) * random.random()
         height = (screen_geo.height() - pet_geo.height()) * random.random()
-        self.move(width, height)
+        self.move(int(width), int(height))
 
     # 宠物正常待机动作
     def petNormalAction(self):
+
         # 每隔一段短时间做个动作
         # 定时器设置，间隔3000ms，时间到换一次
         self.timer = QTimer()
@@ -216,3 +226,18 @@ class Desktop(QWidget):
     def quit(self):
         self.close()
         sys.exit()
+
+    def dragEnterEvent(self, evn):
+
+        # 鼠标放开函数事件
+        evn.accept()
+
+    # 鼠标放开执行
+    def dropEvent(self, evn):
+        file_path = evn.mimeData().text()
+        # print('文件路径：\n' + evn.mimeData().text())
+        self.text.drag_file_mode()
+        self.pet_image.drag_file_mode(file_path)
+    #
+    # def dragMoveEvent(self, evn):
+    #     print('鼠标移入')

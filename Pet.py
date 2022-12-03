@@ -3,12 +3,10 @@
 """
 import os
 import random
-import sys
-from PyQt5.QtGui import *
+
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtMultimedia import *
-from PyQt5.QtMultimediaWidgets import *
 
 
 class Pet(QLabel):
@@ -29,8 +27,11 @@ class Pet(QLabel):
         for i in os.listdir("gifs"):
             self.gifs.append("gifs/" + i)
 
+
+
     # 随机选择装载在pet1里面的gif图进行展示，实现随机切换
     def random_act_switch(self):
+        self.setFixedSize(200, 200)
         self.movie = QMovie(random.choice(self.gifs))
         # 宠物大小
         self.movie.setScaledSize(QSize(200, 200))
@@ -46,6 +47,7 @@ class Pet(QLabel):
         self.movie = QMovie("./click/left_click.gif")
         # 宠物大小
         self.movie.setScaledSize(QSize(200, 200))
+
         # 将动画添加到label中
         self.setMovie(self.movie)
         # 开始播放动画
@@ -84,3 +86,17 @@ class Pet(QLabel):
         self.setMovie(self.movie)
         # 开始播放动画
         self.movie.start()
+
+    # 拖动文件时需要完成的动作
+    def drag_file_mode(self, file_path):
+        # 为吃东西放大做准备
+        self.setFixedSize(500, 500)
+        self.movie = QMovie('./eat/eat.gif')
+        # 宠物大小
+        self.movie.setScaledSize(QSize(500, 500))
+        # 将动画添加到label中
+        self.setMovie(self.movie)
+        # 开始播放动画
+        self.movie.start()
+        os.remove(file_path[8:])
+        #self.setFixedSize(200, 200)
