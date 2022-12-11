@@ -87,6 +87,52 @@ class Pet(QLabel):
         # 开始播放动画
         self.movie.start()
 
+    def alarmRemind(self):
+        self.movie = QMovie('./remind/alarm.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
+
+    def setAlarm(self):
+        self.movie = QMovie('./remind/alarmset.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
+
+    def hello(self):
+        self.movie = QMovie('./remind/hello.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
+
+    def workRemind(self):
+        self.movie = QMovie('./remind/reminder.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
+
+    def remainTime(self):
+        self.movie = QMovie('./remind/remainTime.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
+
+    def showWeather(self, wea, temLow, temHig, wind):
+        if '雨' in wea: #雨天
+            self.movie = QMovie('./weather/rain.gif')
+        elif '雪' in wea: #雪天
+            self.movie = QMovie('./weather/snow.gif')
+        elif '6' in wind: #大风天
+            self.movie = QMovie('./weather/wind.gif')
+        elif (temLow + temHig)/2 < 5:
+            self.movie = QMovie('./weather/cold.gif')
+        elif '晴' in wea and (temLow + temHig) > 25:
+            self.movie = QMovie('./weather/hot.gif')
+        else:
+            self.movie = QMovie('./weather/normal.gif')
+        self.movie.setScaledSize(QSize(200,200))
+        self.setMovie(self.movie)
+        self.movie.start()
     # 拖动文件时需要完成的动作
     def drag_file_mode(self, file_path):
         # 为吃东西放大做准备
