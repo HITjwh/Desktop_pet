@@ -10,6 +10,12 @@ from PyQt5.QtWidgets import *
 
 from Pet import Pet
 from dialog_box import dialog_box
+from Alarm import Alarm
+from Weather import Weather
+from Reminder import Reminder
+import pyautogui
+import time
+import threading
 
 # 长待机的界定时间，单位是ms，方便自己调试时一键修改
 await_time = 9000
@@ -48,6 +54,17 @@ class Desktop(QWidget):
         self.initPetImage()
         # 宠物正常待机，实现随机切换动作
         self.petNormalAction()
+        # 打招呼
+        self.hello()
+        # 开始工作计时
+        self.initReminder()
+        # 当日天气提醒
+        self.initWeather()
+
+        # 闹钟对象
+        self.alarm = None
+        # 锁，用来实现不同功能对宠物文本动作的正常调用
+        self.winLock = threading.Lock()
 
     # 窗体初始化
     def init_window(self):
@@ -56,7 +73,7 @@ class Desktop(QWidget):
         # FrameWindowHint:无边框窗口
         # WindowStaysOnTopHint: 窗口总显示在最上面
         # SubWindow: 新窗口部件是一个子窗口，而无论窗口部件是否有父窗口部件
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SubWindow)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         # setAutoFillBackground(True)表示的是自动填充背景,False为透明背景
         self.setAutoFillBackground(True)
         # 窗口透明，窗体空间不透明
@@ -83,6 +100,15 @@ class Desktop(QWidget):
         # 分别添加退出和显示按钮
         self.tray_icon_menu.addAction(quit_action)
         self.tray_icon_menu.addAction(showing)
+        # 闹钟功能选项
+        alarm = self.tray_icon_menu.addMenu("闹钟")
+        alarm.addAction(QAction("设置闹钟", self, triggered = self.setAlarm))
+        alarm.addAction(QAction("关闭闹钟", self, triggered = self.closeAlarm))
+        alarm.addAction(QAction("剩余时间", self, triggered = self.showRemainTime))
+        # 天气功能选项
+        weather = self.tray_icon_menu.addMenu("天气")
+        weather.addAction(QAction("选择城市", self, triggered = self.selectCity))
+        weather.addAction(QAction("今日天气", self, triggered = self.todayWeather))
 
         # QSystemTrayIcon类为应用程序在系统托盘中提供一个图标
         self.tray_icon = QSystemTrayIcon(self)
@@ -177,9 +203,17 @@ class Desktop(QWidget):
 
     # 宠物右键点击后的操作方法
     def contextMenuEvent(self, event):
-        print('111')
         # 定义菜单
         menu = QMenu(self)
+        # 闹钟功能选项
+        alarm = menu.addMenu("闹钟")
+        alarm.addAction(QAction("设置闹钟", self, triggered = self.setAlarm))
+        alarm.addAction(QAction("关闭闹钟", self, triggered = self.closeAlarm))
+        alarm.addAction(QAction("剩余时间", self, triggered = self.showRemainTime))
+        # 天气功能选项
+        weather = menu.addMenu("天气")
+        weather.addAction(QAction("选择城市", self, triggered = self.selectCity))
+        weather.addAction(QAction("今日天气", self, triggered = self.todayWeather))
         # 定义菜单项
         quitAction = menu.addAction("退出")
         hide = menu.addAction("隐藏")
@@ -216,3 +250,149 @@ class Desktop(QWidget):
     def quit(self):
         self.close()
         sys.exit()
+
+    def setAlarm(self):
+        if self.alarm != None:
+            reply = QMessageBox.question(self, "警告","您已经设置了闹钟，是否关闭并重新设置",
+                                         QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.alarm = None
+                self.setAlarm()
+        else:
+            self.alarm = Alarm()
+            self.alarm.closeSignel.connect(self.closeAlarm)
+            self.alarm.timeOutSignel.connect(self.alarmTimeOut)
+            self.alarm.show()
+            self.alarm.confirmSignel.connect(self.settedAlarm)
+
+    def settedAlarm(self):
+        '''设置完闹钟后宠物对应的动作与文本'''
+        self.talkTimer.start(3000)
+        self.text.briefDia('到时间我会提醒你的哦')
+        self.timer.start(3000)
+        self.pet_image.setAlarm()
+
+    def closeAlarm(self):
+        if self.alarm != None:
+            self.alarm = None
+    def showRemainTime(self):
+        '''显示剩余时间'''
+        if self.alarm != None:
+            # 获取锁
+            self.winLock.acquire()
+            self.show_out()
+            # 获得剩余时间
+            str = "还剩下"
+            remainSec = self.alarm.remainTime()
+            h = int(remainSec/3600)
+            m = int((remainSec-h*3600)/60)
+            s = remainSec - h*3600 - m*60
+            if h>0:
+                str += '{}小时'.format(h)
+            if m>0:
+                str += '{}分钟'.format(m)
+            str += '{}秒'.format(s)
+            # 宠物对应的文本与动作
+            self.talkTimer.start(3000)
+            self.text.briefDia(str)
+            self.timer.start(3000)
+            self.pet_image.remainTime()
+            # 释放锁
+            self.winLock.release()
+        else:
+            reply = QMessageBox.question(self, "警告","您还没有设置闹钟，是否设置",
+                                     QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.setAlarm()
+
+    def alarmTimeOut(self):
+        '''
+        闹钟时间到时的提醒
+        宠物会移动到鼠标所在位置，并发生抖动，产生相应的文本与图片提醒
+        '''
+        # 获得锁
+        self.winLock.acquire()
+        # 若窗口被隐藏，显示窗口
+        self.show_out()
+        # 窗口移动到鼠标位置
+        x, y = pyautogui.position()
+        self.move(x-100, y-100)
+        # 窗口抖动
+        self.shake()
+        # 时间到时宠物的提醒动作与文本
+        self.talkTimer.start(5000)
+        self.text.briefDia("主人，时间到了哦")
+        self.timer.start(5000)
+        self.pet_image.alarmRemind()
+        # 释放锁
+        self.winLock.release()
+        # TODO: 要不要弹出提醒窗口
+
+    def shake(self):
+        '''窗口抖动'''
+        self.moveThread = MoveThread(self.pos())
+        self.moveThread.moveValue.connect(self.move)
+        self.moveThread.start()
+
+    def initReminder(self):
+        self.reminder = Reminder()
+        # 将Reminder对象中的时间到达信号与对应槽函数相连
+        self.reminder.timeOutSignel.connect(self.reminderTimeOut)
+    def hello(self):
+        self.talkTimer.start(2000)
+        self.text.sayHello()
+        self.timer.start(2000)
+        self.pet_image.hello()
+    def reminderTimeOut(self):
+        '''
+        工作时间太长时的提醒
+        包括窗口抖动，通过图片与文本发出提醒
+        '''
+        self.winLock.acquire()
+        # 如果宠物被隐藏，显示宠物
+        self.show_out()
+        # 时间到时宠物的提醒动作与文本
+        self.talkTimer.start(5000)
+        self.text.briefDia("主人，您在电脑前工作时间太长了，休息一下吧")
+        self.timer.start(5000)
+        self.pet_image.workRemind()
+        # 窗口抖动
+        self.shake()
+        self.winLock.release()
+    def initWeather(self):
+        self.weather = Weather()
+
+    def selectCity(self):
+        '''按下选择天气'''
+        self.weather.selectCity()
+    def todayWeather(self):
+        '''按下今日天气'''
+        if self.weather.getCityId() != None:
+            self.showWeather()
+        else:
+            reply = QMessageBox.question(self, "警告","您还没有选择城市，是否选择",
+                                         QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.selectCity()
+    def showWeather(self):
+        '''通过文本与图片展示天气情况'''
+        self.winLock.acquire()
+        self.show_out()
+        wea, temLow, temHig, win, clodTips, clothTips = self.weather.getWeather()
+        self.talkTimer.start(5000)
+        self.text.showWeather(wea, temLow, temHig, win, clodTips, clothTips)
+        self.timer.start(5000)
+        self.pet_image.showWeather(wea, int(temLow), int(temHig), win)
+        self.winLock.release()
+
+class MoveThread(QThread):
+    '''窗口抖动线程，用以实现窗口抖动'''
+    moveValue = pyqtSignal(QPoint)
+    def __init__(self, sourcePos):
+        super().__init__()
+        self.sourcePos = sourcePos
+    def run(self):
+        for i in range(30):
+            self.moveValue.emit(self.sourcePos + QPoint(random.randint(1, 50),
+                                                         random.randint(1, 50)))
+            time.sleep(0.1)

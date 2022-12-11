@@ -107,3 +107,36 @@ class dialog_box(QLabel):
             "url(:/)"
         )
         self.adjustSize()
+
+    def showWeather(self, wea, temLow, temHig, win, clodTips, clothTips):
+        self.setText("今日天气{}，气温{}至{}℃, 风力{}\n".format(wea,temLow,temHig,win) +
+                     clodTips + clothTips)
+        self.setStyleSheet(
+            "font: bold;"
+            "font:15pt '楷体';"
+            "color:white;"
+            "background-color: white"
+            "url(:/)"
+        )
+        self.adjustSize()
+    def sayHello(self):
+        self.setText('主人，你好呀')
+        self.setStyleSheet(
+            "font: bold;"
+            "font:25pt '楷体';"
+            "color:white;"
+            "background-color: white"
+            "url(:/)"
+        )
+        self.adjustSize()
+
+    def briefDia(self, str):
+        self.setText(str)
+        self.setStyleSheet(
+            "font: bold;"
+            "font:15pt '楷体';"
+            "color:white;"
+            "background-color: white"
+            "url(:/)"
+        )
+        self.adjustSize()
